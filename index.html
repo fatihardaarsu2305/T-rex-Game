@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chrome T-Rex Çöl Koşucusu</title>
+</head>
+<body>
+<script>
+window.addEventListener("DOMContentLoaded", () => {
+    // --- GOOGLE CHROME UYUMLU SAYFA TASARIMI ---
+    document.body.style.margin = "0";
+    document.body.style.height = "100vh";
+    document.body.style.display = "flex";
+    document.body.style.flexDirection = "column";
+    document.body.style.alignItems = "center";
+    document.body.style.justifyContent = "center";
+    document.body.style.backgroundColor = "#202124"; // Google Chrome Koyu Tema Rengi
+    document.body.style.color = "#e8eaed";
+    document.body.style.fontFamily = "'Roboto', 'Segoe UI', Arial, sans-serif";
+    document.body.style.userSelect = "none";
+
+    const oyunKapsayici = document.createElement("div");
+    oyunKapsayici.style.position = "relative";
+    oyunKapsayici.style.width = "720px";
+    oyunKapsayici.style.height = "260px";
+    oyunKapsayici.style.borderRadius = "12px";
+    oyunKapsayici.style.overflow = "hidden";
+    oyunKapsayici.style.backgroundColor = "#87CEEB";
+    oyunKapsayici.style.boxShadow = "0 8px 28px rgba(0,0,0,0.5)";
+    oyunKapsayici.style.border = "2px solid #3c4043";
+    document.body.appendChild(oyunKapsayici);
+
+    const canvas = document.createElement("canvas");
+    canvas.width = 720;
+    canvas.height = 260;
+    canvas.style.display = "block";
+    oyunKapsayici.appendChild(canvas);
+
+    // --- GİRİŞ EKRANI ---
+    const girisEkrani = document.createElement("div");
+    girisEkrani.style.position = "absolute";
+    girisEkrani.style.inset = "0";
+    girisEkrani.style.backgroundColor = "rgba(32, 33, 36, 0.94)";
+    girisEkrani.style.display = "flex";
+    girisEkrani.style.flexDirection = "column";
+    girisEkrani.style.alignItems = "center";
+    girisEkrani.style.justifyContent = "center";
+    girisEkrani.style.zIndex = "10";
+
+    girisEkrani.innerHTML = `
+        <h2 style="margin: 0 0 10px 0; color: #8ab4f8; font-size: 26px; letter-spacing: 0.5px;">🦖 ÇÖL KOŞUCUSU T-REX</h2>
+        <p style="margin: 0 0 16px 0; color: #9aa0a6; font-size: 13px;">Google Chrome için optimize edildi</p>
+        <label style="margin-bottom: 18px; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 8px; background: #303134; padding: 8px 14px; border-radius: 6px; border: 1px solid #5f6368;">
+            <input type="checkbox" id="kayitSecenegi" style="width: 17px; height: 17px; cursor: pointer; accent-color: #8ab4f8;">
+            <span>Bu turu video olarak kaydet (Ölünce otomatik indirilir)</span>
+        </label>
+        <button id="baslaBtn" style="padding: 11px 30px; font-size: 15px; font-weight: bold; background-color: #8ab4f8; color: #202124; border: none; border-radius: 6px; cursor: pointer; transition: 0.2s;">OYUNA BAŞLA</button>
+    `;
+    oyunKapsayici.appendChild(girisEkrani);
+
+    // --- ÖLÜM EKRANI ---
+    const olumEkrani = document.createElement("div");
+    olumEkrani.style.position = "absolute";
+    olumEkrani.style.inset = "0";
+    olumEkrani.style.backgroundColor = "rgba(32, 33, 36, 0.94)";
+    olumEkrani.style.display = "none";
+    olumEkrani.style.flexDirection = "column";
+    olumEkrani.style.alignItems = "center";
+    olumEkrani.style.justifyContent = "center";
+    olumEkrani.style.textAlign = "center";
+    olumEkrani.style.padding = "16px";
+    olumEkrani.style.boxSizing = "border-box";
+    olumEkrani.style.zIndex = "10";
+
+    olumEkrani.innerHTML = `
+        <h2 style="margin: 0 0 6px 0; color: #f28b82; font-size: 28px; letter-spacing: 1.5px;">ÖLDÜN!</h2>
+        <p id="olumSebebi" style="margin: 0 0 8px 0; color: #fdd663; font-size: 14px; max-width: 580px; line-height: 1.4;"></p>
+        <div id="kayitAlani" style="margin-bottom: 14px; min-height: 22px;"></div>
+        <div style="display: flex; gap: 12px;">
+            <button id="tekrarBtn" style="padding: 9px 22px; font-size: 14px; font-weight: bold; background-color: #8ab4f8; color: #202124; border: none; border-radius: 6px; cursor: pointer;">TEKRAR OYNA</button>
+            <button id="anaMenuBtn" style="padding: 9px 22px; font-size: 14px; font-weight: bold; background-color: #3c4043; color: #e8eaed; border: 1px solid #5f6368; border-radius: 6px; cursor: pointer;">GİRİŞ EKRANI</button>
+        </div>
+    `;
+    oyunKapsayici.appendChild(olumEkrani);
+
+    const bilgi = document.createElement("p");
+    bilgi.innerHTML = "Zıplamak için <b>Boşluk (Space)</b>, <b>Yukarı Yön Tuşu</b> veya <b>Ekrana Tıkla</b>.";
+    bilgi.style.fontSize = "13px";
+    bilgi.style.color = "#9aa0a6";
+    bilgi.style.marginTop = "12px";
+    document.body.appendChild(bilgi);
+
+    const ctx = canvas.getContext("2d", { alpha: false });
+
+    function yuvarlakKutu(x, y, g, yk, r) {
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.lineTo(x + g - r, y);
+        ctx.quadraticCurveTo(x + g, y, x + g, y + r);
+        ctx.lineTo(x + g, y + yk - r);
+        ctx.quadraticCurveTo(x + g, y + yk, x + g - r, y + yk);
+        ctx.lineTo(x + r, y + yk);
+        ctx.quadraticCurveTo(x, y + yk, x, y + yk - r);
+        ctx.lineTo(x, y + r);
+        ctx.quadraticCurveTo(x, y, x + r, y);
+        ctx.closePath();
+        ctx.fill();
+    }
+
+    // --- GOOGLE CHROME VİDEO KAYIT SİSTEMİ ---
+    let mediaRecorder = null;
+    let kaydedilenParcalar = [];
+    let kayitAktifMi = false;
+    let sonVideoUrl = null;
+
+    function chromeVideoFormatiSec() {
+        const formatlar = [
+            "video/webm;codecs=vp9",
+            "video/webm;codecs=vp8",
+            "video/webm"
+        ];
+        for (const f of formatlar) {
+            if (typeof MediaRecorder !== "undefined" && MediaRecorder.isTypeSupported(f)) {
+                return f;
+            }
+        }
+        return "";
+    }
+
+    function kaydiBaslat() {
+        try {
+            if (sonVideoUrl) {
+                URL.revokeObjectURL(sonVideoUrl);
+                sonVideoUrl = null;
+            }
+            kaydedilenParcalar = [];
+            const stream = canvas.captureStream(60); // Chrome 60 FPS akış
+            const mimeType = chromeVideoFormatiSec();
+            mediaRecorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+
+            mediaRecorder.ondataavailable = (e) => {
+                if (e.data && e.data.size > 0) kaydedilenParcalar.push(e.data);
+            };
+
+            mediaRecorder.onstop = () => {
+                const blob = new Blob(kaydedilenParcalar, { type: "video/webm" });
+                sonVideoUrl = URL.createObjectURL(blob);
+                const dosyaAdi = `chrome-dino-kayit-${Date.now()}.webm`;
+
+                // Otomatik indirmeyi tetikle
+                const a = document.createElement("a");
+                a.href = sonVideoUrl;
+                a.download = dosyaAdi;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+
+                // Chrome yerel dosya güvenliği indirmeyi engellerse diye manuel indirme ve izleme linki de ekle
+                const kayitAlani = document.getElementById("kayitAlani");
+                kayitAlani.innerHTML = `
+                    <span style="color: #81c995; font-size: 13px;">🎥 Video kaydedildi! </span>
+                    <a href="${sonVideoUrl}" download="${dosyaAdi}" style="color: #8ab4f8; font-size: 13px; text-decoration: underline; margin-left: 6px;">Tekrar İndir (.webm)</a>
+                    <a href="${sonVideoUrl}" target="_blank" style="color: #c58af9; font-size: 13px; text-decoration: underline; margin-left: 10px;">Yeni Sekmede İzle</a>
+                `;
+            };
+
+            mediaRecorder.start(100);
+            kayitAktifMi = true;
+        } catch (hata) {
+            kayitAktifMi = false;
+        }
+    }
+
+    function kaydiDurdurVeAktar() {
+        const kayitAlani = document.getElementById("kayitAlani");
+        if (kayitAktifMi && mediaRecorder && mediaRecorder.state !== "inactive") {
+            mediaRecorder.stop();
+            kayitAktifMi = false;
+        } else {
+            kayitAlani.innerHTML = "";
+        }
+    }
+
+    // --- OYUN DEĞİŞKENLERİ ---
+    let skor = 0;
+    let enYuksekSkor = Number(localStorage.getItem("chrome_dino_rekor")) || 0;
+    let oyunHizi = 6;
+    let oyunDurumu = "GIRIS";
+    let kareSayaci = 0;
+    let animasyonId = null;
+
+    const zeminY = 215;
+    const oyuncu = {
+        x: 65,
+        y: zeminY - 48,
+        genislik: 44,
+        yukseklik: 48,
+        dy: 0,
+        yercekimi: 0.68,
+        ziplamaGucu: -12.5,
+        yerdeMi: true
+    };
+
+    let engeller = [];
+    let bulutlar = [
+        { x: 160, y: 45, hiz: 0.8 },
+        { x: 430, y: 70, hiz: 0.5 },
+        { x: 650, y: 38, hiz: 0.7 }
+    ];
+    let zeminCizgileri = [];
+    for (let i = 0; i < 28; i++) {
+        zeminCizgileri.push({
+            x: Math.random() * canvas.width,
+            y: zeminY + 6 + Math.random() * 28,
+            uzunluk: 8 + Math.random() * 18
+        });
+    }
+    let engelSayaci = 0;
+
+    // --- KONTROLLER ---
+    function zipla() {
+        if (oyunDurumu === "OYNANIYOR" && oyuncu.yerdeMi) {
+            oyuncu.dy = oyuncu.ziplamaGucu;
+            oyuncu.yerdeMi = false;
+        }
+    }
+
+    document.getElementById("baslaBtn").addEventListener("click", () => {
+        const kayitIsteniyorMu = document.getElementById("kayitSecenegi").checked;
+        girisEkrani.style.display = "none";
+        oyunuBaslat(kayitIsteniyorMu);
+    });
+
+    document.getElementById("tekrarBtn").addEventListener("click", () => {
+        const kayitIsteniyorMu = document.getElementById("kayitSecenegi").checked;
+        olumEkrani.style.display = "none";
+        oyunuBaslat(kayitIsteniyorMu);
+    });
+
+    document.getElementById("anaMenuBtn").addEventListener("click", () => {
+        olumEkrani.style.display = "none";
+        girisEkrani.style.display = "flex";
